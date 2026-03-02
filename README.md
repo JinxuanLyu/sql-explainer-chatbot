@@ -56,7 +56,7 @@ gcloud config set project ieor-4576-jinxuan
 uv run uvicorn app.main:app --reload --port 8080
 ```
 
-### Run on Google Shell:
+## Run on Google Shell:
 ```uv run uvicorn app.main:app --reload --port 8080
 ```
 
