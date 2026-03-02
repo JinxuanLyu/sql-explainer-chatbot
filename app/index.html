@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SQL Query Explainer</title>
+    <style>
+      :root {
+        --bg: #ffffff;
+        --panel: #ffffff;
+        --border: #e6e6e6;
+        --muted: #8a8a8a;
+        --text: #111111;
+        --shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+      }
+
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+
+      body {
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 3rem 1rem;
+      }
+
+      #container {
+        width: 100%;
+        max-width: 980px;
+        border: 1px solid var(--border);
+        border-radius: 18px;
+        overflow: hidden;
+        background: var(--panel);
+        box-shadow: var(--shadow);
+        display: flex;
+        flex-direction: column;
+        min-height: 640px;
+        /* Ensure the whole app can shrink within viewport */
+        max-height: calc(100vh - 6rem);
+      }
+
+      #header {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex: 0 0 auto;
+      }
+
+      #title {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+      }
+
+      #title h1 {
+        font-size: 1.1rem;
+        letter-spacing: 0.02em;
+        font-weight: 650;
+      }
+
+      #title p {
+        font-size: 0.9rem;
+        color: var(--muted);
+      }
+
+      #badge {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        padding: 0.45rem 0.7rem;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        color: var(--muted);
+        user-select: none;
+      }
+
+      #messages {
+        flex: 1 1 auto;
+        min-height: 0;              /* allow the flex child to scroll */
+        overflow-y: auto;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        background: #fcfcfc;
+        overscroll-behavior: contain;
+      }
+
+      /* Make long tokens/URLs wrap cleanly */
+      #messages * {
+        overflow-wrap: anywhere;
+      }
+
+      .msg {
+        max-width: 78%;
+        line-height: 1.5;
+        border-radius: 16px;
+        padding: 0.9rem 1rem;
+        border: 1px solid var(--border);
+        background: #fff;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+
+      .msg .role {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted);
+        margin-bottom: 0.35rem;
+      }
+
+      .msg.user {
+        align-self: flex-end;
+        background: #111;
+        color: #fff;
+        border-color: #111;
+      }
+      .msg.user .role { color: rgba(255, 255, 255, 0.7); }
+
+      .msg.loading {
+        color: var(--muted);
+      }
+
+      #input-area {
+        border-top: 1px solid var(--border);
+        padding: 1rem 1.25rem;
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+        background: #fff;
+        flex: 0 0 auto;
+      }
+
+      #user-input {
+        flex: 1;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 0.85rem 0.9rem;
+        font-size: 1rem;
+        outline: none;
+      }
+
+      #user-input:focus {
+        border-color: #111;
+      }
+
+      #send-btn, #clear-btn {
+        border: 1px solid var(--border);
+        background: #111;
+        color: #fff;
+        border-radius: 12px;
+        padding: 0.85rem 1.05rem;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        cursor: pointer;
+        user-select: none;
+      }
+
+      #clear-btn {
+        background: #fff;
+        color: #111;
+      }
+
+      #send-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+      #helper {
+        padding: 0 1.5rem 1rem 1.5rem;
+        font-size: 0.85rem;
+        color: var(--muted);
+        border-top: 1px solid var(--border);
+        background: #fff;
+        flex: 0 0 auto;
+      }
+
+      code.kbd {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        font-size: 0.85em;
+        padding: 0.1em 0.35em;
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        background: #fafafa;
+        color: #222;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="container">
+      <div id="header">
+        <div id="title">
+          <h1>SQL Query Type Explainer</h1>
+          <p>Paste a SQL query (SELECT / WHERE / JOIN / GROUP BY / aggregates).</p>
+        </div>
+        <div id="badge">FastAPI • Cloud Run</div>
+      </div>
+
+      <div id="messages"></div>
+
+      <div id="input-area">
+        <input
+          type="text"
+          id="user-input"
+          placeholder="e.g. Explain: SELECT dept, COUNT(*) FROM emp GROUP BY dept;"
+          autocomplete="off"
+        />
+        <button id="clear-btn" title="Clear chat">Clear</button>
+        <button id="send-btn">Send</button>
+      </div>
+
+      <div id="helper">
+        Tip: Press <code class="kbd">Enter</code> to send. Use <code class="kbd">Clear</code> to reset.
+      </div>
+    </div>
+
+    <script>
+      const messages = document.getElementById("messages");
+      const userInput = document.getElementById("user-input");
+      const sendBtn = document.getElementById("send-btn");
+      const clearBtn = document.getElementById("clear-btn");
+
+      // Return true if the user is already near the bottom of the scroll container.
+      function isNearBottom(el, threshold = 80) {
+        return el.scrollTop + el.clientHeight >= el.scrollHeight - threshold;
+      }
+
+      // Only auto-scroll when the user hasn't scrolled up to read older messages.
+      function scrollToBottomIfNeeded(el, shouldStickToBottom) {
+        if (shouldStickToBottom) {
+          el.scrollTop = el.scrollHeight;
+        }
+      }
+
+      function addMessage(role, text, isLoading = false) {
+        const shouldStickToBottom = isNearBottom(messages);
+
+        const div = document.createElement("div");
+        div.className =
+          "msg " +
+          (role === "you" ? "user" : "assistant") +
+          (isLoading ? " loading" : "");
+
+        div.innerHTML =
+          '<div class="role">' +
+          role +
+          '</div>' +
+          '<div class="content"></div>';
+
+        div.querySelector(".content").textContent = text;
+        messages.appendChild(div);
+
+        // Wait for DOM paint, then decide whether to auto-scroll.
+        requestAnimationFrame(() => scrollToBottomIfNeeded(messages, shouldStickToBottom));
+
+        return div;
+      }
+
+      function seed() {
+        messages.innerHTML = "";
+        addMessage(
+          "assistant",
+          "Hi — paste a SQL query and I’ll explain the clauses.\n\nExample:\nExplain: SELECT dept, COUNT(*) FROM emp GROUP BY dept;"
+        );
+
+        // On seed, we want to start at the bottom (there's only one message anyway).
+        requestAnimationFrame(() => {
+          messages.scrollTop = messages.scrollHeight;
+        });
+      }
+
+      async function send() {
+        const text = userInput.value.trim();
+        if (!text) return;
+
+        userInput.value = "";
+        sendBtn.disabled = true;
+
+        addMessage("you", text);
+        const loading = addMessage("assistant", "Thinking...", true);
+
+        try {
+          const res = await fetch("/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: text })
+          });
+
+          if (!res.ok) {
+            throw new Error("HTTP " + res.status);
+          }
+
+          const data = await res.json();
+
+          // Preserve near-bottom behavior when updating the loading bubble.
+          const shouldStickToBottom = isNearBottom(messages);
+
+          loading.querySelector(".content").textContent =
+            data.response ?? "(No response field returned)";
+          loading.classList.remove("loading");
+
+          requestAnimationFrame(() => scrollToBottomIfNeeded(messages, shouldStickToBottom));
+        } catch (e) {
+          const shouldStickToBottom = isNearBottom(messages);
+
+          loading.querySelector(".content").textContent = "Error: " + e.message;
+          loading.classList.remove("loading");
+
+          requestAnimationFrame(() => scrollToBottomIfNeeded(messages, shouldStickToBottom));
+        }
+
+        sendBtn.disabled = false;
+        userInput.focus();
+      }
+
+      sendBtn.addEventListener("click", send);
+      clearBtn.addEventListener("click", seed);
+
+      userInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") send();
+      });
+
+      seed();
+      userInput.focus();
+    </script>
+  </body>
+</html>
