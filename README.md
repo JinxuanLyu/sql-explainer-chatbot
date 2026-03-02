@@ -30,20 +30,24 @@ Each returns a fixed structured refusal message.
 ---
 ## Project Structure
 
-app/
--- main.py: FastAPI server
---guardrails.py: routing + OOS handling + deterministic checks
---llm.py: LLM call + post-generation backstop
---prompt.py: system prompt (persona + few-shot)
---index.html: frontend UI
-
-eval/
---dataset.json: 20+ test cases
---run_eval.py: evaluation runner
-
-Dockerfile
-cloudbuild.yaml
-pyproject.toml
+```
+sql-explainer-chatbot/
+├── app/
+│   ├── main.py          # FastAPI server
+│   ├── guardrails.py    # routing + OOS handling + deterministic checks
+│   ├── llm.py           # Vertex AI LLM call + post-generation backstop
+│   ├── prompt.py        # system prompt (persona + few-shot examples)
+│   └── index.html       # frontend UI
+│
+├── eval/
+│   ├── dataset.json     # 20+ test cases
+│   └── run_eval.py      # evaluation harness
+│
+├── Dockerfile
+├── cloudbuild.yaml
+├── pyproject.toml
+└── README.md
+```
 
 ---
 ## Run locally (uv)
@@ -57,12 +61,14 @@ uv run uvicorn app.main:app --reload --port 8080
 ```
 
 ## Run on Google Shell:
-```uv run uvicorn app.main:app --reload --port 8080
+```bash
+uv run uvicorn app.main:app --reload --port 8080
 ```
 
 
 ## Run Eval
-```uv run python -m eval.run_eval
+```bash
+uv run python -m eval.run_eval
 ```
 
 ---
